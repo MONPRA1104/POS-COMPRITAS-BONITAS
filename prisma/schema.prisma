@@ -1,0 +1,324 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String               @id @default(uuid())
+  email              String               @unique
+  password           String
+  name               String
+  role               String               @default("VENDEDOR") // "ADMIN" | "VENDEDOR"
+  active             Boolean              @default(true)
+
+  // Granular Permissions
+  canAccessPOS       Boolean              @default(true)
+  canAccessInventory Boolean              @default(false)
+  canAccessCustomers Boolean              @default(false)
+  canAccessExpenses  Boolean              @default(false)
+  canAccessReports   Boolean              @default(false)
+  canAccessSettings  Boolean              @default(false)
+
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  
+  openedRegisters    CashRegister[]       @relation("OpenedByUser")
+  closedRegisters    CashRegister[]       @relation("ClosedByUser")
+  cashMovements      CashMovement[]
+  inventoryMovements InventoryMovement[]
+  sales              Sale[]
+  expenses           Expense[]
+  auditLogs          AuditLog[]
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  products    Product[]
+}
+
+model Product {
+  id                 String              @id @default(uuid())
+  sku                String              @unique
+  name               String
+  description        String?
+  categoryId         String
+  brand              String?
+  cost               Float               @default(0)
+  price              Float               @default(0)
+  stock              Int                 @default(0)
+  minStock           Int                 @default(5)
+  image              String?
+  active             Boolean             @default(true)
+  hasVariants        Boolean             @default(false)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  category           Category            @relation(fields: [categoryId], references: [id])
+  variants           ProductVariant[]
+  saleItems          SaleItem[]
+  inventoryMovements InventoryMovement[]
+  orderItems         OrderItem[]
+  promotions         Promotion[]
+}
+
+model ProductVariant {
+  id                 String              @id @default(uuid())
+  productId          String
+  sku                String              @unique
+  size               String?             // Talla: M, L, XL, etc.
+  color              String?             // Color: Negro, Rosa, etc.
+  stock              Int                 @default(0)
+  minStock           Int                 @default(5)
+  cost               Float               @default(0)
+  price              Float               @default(0)
+  active             Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  product            Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  saleItems          SaleItem[]
+  inventoryMovements InventoryMovement[]
+  orderItems         OrderItem[]
+  promotions         Promotion[]
+}
+
+model Customer {
+  id                  String    @id @default(uuid())
+  name                String
+  phone               String?
+  whatsapp            String?
+  email               String?
+  address             String?
+  neighborhood        String?
+  city                String?
+  postalCode          String?
+  notes               String?
+  isGeneral           Boolean   @default(false)
+  totalPurchasesCount Int       @default(0)
+  totalSpent          Float     @default(0)
+  lastPurchaseAt      DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  sales               Sale[]
+  orders              Order[]
+}
+
+model CashRegister {
+  id               String         @id @default(uuid())
+  openedByUserId   String
+  closedByUserId   String?
+  openedAt         DateTime       @default(now())
+  closedAt         DateTime?
+  initialFund      Float          @default(0)
+  expectedCash     Float          @default(0)
+  countedCash      Float?
+  difference       Float?
+  status           String         @default("OPEN") // "OPEN" | "CLOSED"
+  notes            String?
+  createdAt        DateTime       @default(now())
+
+  openedByUser     User           @relation("OpenedByUser", fields: [openedByUserId], references: [id])
+  closedByUser     User?          @relation("ClosedByUser", fields: [closedByUserId], references: [id])
+  cashMovements    CashMovement[]
+  sales            Sale[]
+  expenses         Expense[]
+}
+
+model CashMovement {
+  id             String       @id @default(uuid())
+  cashRegisterId String
+  userId         String
+  type           String       // "VENTA" | "GASTO" | "RETIRO" | "INGRESO_MANUAL" | "DEVOLUCION" | "AJUSTE"
+  amount         Float
+  paymentMethod  String       @default("EFECTIVO") // "EFECTIVO" | "TARJETA" | "TRANSFERENCIA" | "MERCADO_PAGO" | "OTRO"
+  referenceId    String?
+  note           String?
+  createdAt      DateTime     @default(now())
+
+  cashRegister   CashRegister @relation(fields: [cashRegisterId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id])
+}
+
+model Sale {
+  id                String       @id @default(uuid())
+  saleNumber        String       @unique // ej: CB-000001
+  customerId        String
+  cashRegisterId    String?
+  userId            String
+  status            String       @default("COMPLETED") // "COMPLETED" | "CANCELLED" | "RETURNED"
+  subtotal          Float
+  discount          Float        @default(0)
+  shippingCost      Float        @default(0)
+  total             Float
+  deliveryType      String       @default("PICKUP") // "PICKUP" | "SHIPPING" | "PERSONAL"
+  historicalCostSum Float        @default(0)
+  notes             String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  customer          Customer     @relation(fields: [customerId], references: [id])
+  cashRegister      CashRegister? @relation(fields: [cashRegisterId], references: [id])
+  user              User         @relation(fields: [userId], references: [id])
+  items             SaleItem[]
+  payments          Payment[]
+}
+
+model SaleItem {
+  id          String          @id @default(uuid())
+  saleId      String
+  productId   String
+  variantId   String?
+  productName String
+  variantName String?
+  sku         String
+  unitCost    Float
+  unitPrice   Float
+  quantity    Int
+  discount    Float           @default(0)
+  subtotal    Float
+  createdAt   DateTime        @default(now())
+
+  sale        Sale            @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product     Product         @relation(fields: [productId], references: [id])
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  saleId          String
+  paymentMethod   String   // "EFECTIVO" | "TARJETA" | "TRANSFERENCIA" | "MERCADO_PAGO" | "OTRO"
+  amount          Float
+  referenceNumber String?
+  createdAt       DateTime @default(now())
+
+  sale            Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+}
+
+model InventoryMovement {
+  id            String          @id @default(uuid())
+  productId     String
+  variantId     String?
+  type          String          // "ENTRADA" | "VENTA" | "DEVOLUCION" | "AJUSTE_POSITIVO" | "AJUSTE_NEGATIVO" | "PRODUCTO_DANADO" | "CANCELACION_VENTA"
+  quantity      Int
+  previousStock Int
+  newStock      Int
+  userId        String
+  reason        String?
+  referenceId   String?
+  createdAt     DateTime        @default(now())
+
+  product       Product         @relation(fields: [productId], references: [id])
+  variant       ProductVariant? @relation(fields: [variantId], references: [id])
+  user          User            @relation(fields: [userId], references: [id])
+}
+
+model Order {
+  id                String      @id @default(uuid())
+  orderNumber       String      @unique // ej: WA-2026-001
+  customerId        String
+  whatsappRef       String?
+  status            String      @default("NUEVO") // "NUEVO" | "CONFIRMADO" | "PREPARANDO" | "LISTO_PARA_RECOGER" | "ENVIADO" | "ENTREGADO" | "CANCELADO" | "DEVUELTO"
+  deliveryType      String      @default("SHIPPING") // "PICKUP" | "SHIPPING" | "PERSONAL"
+  recipientName     String?
+  recipientPhone    String?
+  shippingAddress   String?
+  neighborhood      String?
+  city              String?
+  postalCode        String?
+  addressReferences String?
+  shippingCost      Float       @default(0)
+  courierCompany    String?
+  trackingNumber    String?
+  notes             String?
+  total             Float
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  customer          Customer    @relation(fields: [customerId], references: [id])
+  items             OrderItem[]
+}
+
+model OrderItem {
+  id          String          @id @default(uuid())
+  orderId     String
+  productId   String
+  variantId   String?
+  productName String
+  variantName String?
+  sku         String
+  unitPrice   Float
+  quantity    Int
+  subtotal    Float
+  createdAt   DateTime        @default(now())
+
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product         @relation(fields: [productId], references: [id])
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+}
+
+model Expense {
+  id             String        @id @default(uuid())
+  concept        String
+  category       String        // "MERCANCIA" | "ENVIOS" | "PUBLICIDAD" | "EMPAQUES" | "TRANSPORTE" | "SERVICIOS" | "OTROS"
+  amount         Float
+  paymentMethod  String        @default("EFECTIVO")
+  cashRegisterId String?
+  userId         String
+  date           DateTime      @default(now())
+  note           String?
+  createdAt      DateTime      @default(now())
+
+  cashRegister   CashRegister? @relation(fields: [cashRegisterId], references: [id])
+  user           User          @relation(fields: [userId], references: [id])
+}
+
+model Promotion {
+  id            String          @id @default(uuid())
+  name          String
+  discountType  String          // "PERCENTAGE" | "FIXED_AMOUNT" | "SPECIAL_PRICE"
+  discountValue Float
+  productId     String?
+  variantId     String?
+  startDate     DateTime
+  endDate       DateTime
+  active        Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+
+  product       Product?        @relation(fields: [productId], references: [id])
+  variant       ProductVariant? @relation(fields: [variantId], references: [id])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String
+  action      String   // "LOGIN" | "VENTA" | "CANCELACION" | "DEVOLUCION" | "AJUSTE_INVENTARIO" | "CIERRE_CAJA" | "CAMBIO_PRECIO" | "CAMBIO_COSTO"
+  entity      String
+  entityId    String?
+  oldValues   String?  // JSON string
+  newValues   String?  // JSON string
+  reference   String?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model BusinessSettings {
+  id           String   @id @default("1")
+  storeName    String   @default("Compritas Bonitas")
+  phone        String   @default("555-000-0000")
+  address      String?
+  currency     String   @default("MXN")
+  ticketHeader String?  @default("¡Gracias por tu compra en Compritas Bonitas!")
+  ticketFooter String?  @default("Síguenos en nuestras redes sociales.")
+  updatedAt    DateTime @updatedAt
+}

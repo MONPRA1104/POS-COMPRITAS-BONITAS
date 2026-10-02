@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 40% 98%; /* Cream #FAF6F0 */
+    --foreground: 345 30% 20%;
+
+    --card: 0 0% 100%; /* Pure White */
+    --card-foreground: 345 30% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 345 30% 20%;
+
+    --primary: 347 62% 60%; /* Rosa Compritas #D85C77 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 350 70% 97%; /* Rosa Claro #FDF0F3 */
+    --secondary-foreground: 347 50% 40%;
+
+    --muted: 36 20% 94%;
+    --muted-foreground: 345 10% 45%;
+
+    --accent: 45 65% 52%; /* Dorado #D4AF37 */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 350 30% 90%;
+    --input: 350 30% 90%;
+    --ring: 347 62% 60%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Custom scrollbars for POS */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(248, 230, 235, 0.4);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E8A8B7;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D85C77;
+}
+
+/* Printable Ticket styling */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-ticket, #printable-ticket * {
+    visibility: visible;
+  }
+  #printable-ticket {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+  }
+}
