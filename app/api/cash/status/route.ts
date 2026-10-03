@@ -1,9 +1,11 @@
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { unstable_noStore as noStore } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  noStore();
   try {
     const cashRegister = await db.cashRegister.findFirst({
       where: { status: "OPEN" },

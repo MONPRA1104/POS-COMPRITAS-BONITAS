@@ -2,10 +2,12 @@ import Link from "next/link";
 import { getCustomerById } from "@/lib/actions/customers";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ArrowLeft, ShoppingBag, Phone, MapPin, Calendar, DollarSign } from "lucide-react";
+import { unstable_noStore as noStore } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomerDetailPage({ params }: { params: { id: string } }) {
+  noStore();
   const customer = await getCustomerById(params.id);
 
   if (!customer) {
