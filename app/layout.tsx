@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: "Sistema POS boutique profesional para Compritas Bonitas",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{
