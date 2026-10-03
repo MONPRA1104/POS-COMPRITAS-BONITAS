@@ -5,10 +5,10 @@ import { cookies } from "next/headers";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  try {
-    // Force Next.js to NEVER evaluate this statically
-    cookies();
+  // Force Next.js to NEVER evaluate this statically (must be outside try/catch)
+  cookies();
 
+  try {
     const cashRegister = await db.cashRegister.findFirst({
       where: { status: "OPEN" },
     });
