@@ -86,7 +86,7 @@ export function CashModule({ initialCashRegister }: { initialCashRegister: any |
   };
 
   const expectedCash = cashRegister ? cashRegister.expectedCash : 0;
-  const computedDifference = countedCash - expectedCash;
+  const computedDifference = Number(countedCash) - expectedCash;
 
   return (
     <div className="space-y-6">
