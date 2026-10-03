@@ -14,15 +14,21 @@ export async function loginAction(formData: FormData) {
   }
 
   try {
+    console.log("LOGIN ACTION START:", email);
+    
+    console.log("Querying database...");
     const user = await db.user.findUnique({
       where: { email },
     });
+    console.log("Database returned:", user ? "User found" : "Null");
 
     if (!user || !user.active) {
       return { error: "Credenciales inválidas o cuenta desactivada." };
     }
 
+    console.log("Comparing password...");
     const isValid = await bcrypt.compare(password, user.password);
+    console.log("Password valid:", isValid);
 
     if (!isValid) {
       return { error: "Credenciales inválidas." };

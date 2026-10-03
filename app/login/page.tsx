@@ -16,13 +16,18 @@ export default function LoginPage() {
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    const result = await loginAction(formData);
+    try {
+      const result = await loginAction(formData);
 
-    if (result?.error) {
-      setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+        setIsPending(false);
+      } else {
+        router.push("/");
+      }
+    } catch (err: any) {
+      setError(err.message || "Error de red o timeout al conectar con el servidor.");
       setIsPending(false);
-    } else {
-      router.push("/");
     }
   }
 
